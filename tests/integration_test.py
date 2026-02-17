@@ -16,6 +16,7 @@ from acp_router import ACPRouter
 def test_backend_availability(backend: str, command: str) -> bool:
     """检查后端是否可用"""
     import shutil
+
     return shutil.which(command) is not None
 
 
@@ -46,16 +47,24 @@ def test_opencode_integration():
     except Exception as e:
         print(f"❌ OpenCode 测试失败: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
 
 def test_claude_integration():
-    """测试 Claude Code 集成"""
-    print("\n=== Claude Code 集成测试 ===")
+    """测试 Claude Code 集成（SDK 模式）"""
+    print("\n=== Claude Code 集成测试 (SDK 模式) ===")
 
-    if not test_backend_availability("claude", "claude"):
-        print("⚠️  Claude Code 未安装，跳过测试")
+    # 检查认证环境变量
+    import os
+
+    auth_token = os.environ.get("ANTHROPIC_AUTH_TOKEN")
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+
+    if not auth_token and not api_key:
+        print("⚠️  Claude Code 未配置认证，跳过测试")
+        print("    请设置 ANTHROPIC_AUTH_TOKEN 或 ANTHROPIC_API_KEY")
         return
 
     os.environ["ACP_BACKEND"] = "claude"
@@ -66,7 +75,7 @@ def test_claude_integration():
         print(f"能力: {router.capabilities}")
 
         # 测试简单对话
-        print("\n发送: 你好")
+        print("\n发送: Hello")
         response = router.chat([{"role": "user", "content": "Hello, please say hi back"}])
         print(f"响应: {response[:100]}...")
 
@@ -77,6 +86,7 @@ def test_claude_integration():
     except Exception as e:
         print(f"❌ Claude Code 测试失败: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -98,7 +108,7 @@ def test_openai_compatible_api():
         response = router.chat_completions.create(
             messages=[
                 {"role": "system", "content": "你是一个简洁的助手"},
-                {"role": "user", "content": "说 '测试成功'"}
+                {"role": "user", "content": "说 '测试成功'"},
             ],
             temperature=0.7,
         )
@@ -113,6 +123,7 @@ def test_openai_compatible_api():
     except Exception as e:
         print(f"❌ OpenAI 兼容 API 测试失败: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -131,9 +142,9 @@ def test_code_generation():
         router = ACPRouter()
 
         print("请求: 写一个 Python 快速排序")
-        response = router.chat([
-            {"role": "user", "content": "用 Python 写一个快速排序函数，要简洁"}
-        ])
+        response = router.chat(
+            [{"role": "user", "content": "用 Python 写一个快速排序函数，要简洁"}]
+        )
 
         # 检查响应是否包含代码
         has_code = "def " in response or "quick_sort" in response.lower() or "快速排序" in response
@@ -152,6 +163,7 @@ def test_code_generation():
     except Exception as e:
         print(f"❌ 代码生成测试失败: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -164,6 +176,7 @@ def main():
 
     # 检查可用后端
     import shutil
+
     available = []
     if shutil.which("opencode"):
         available.append("OpenCode")
@@ -181,7 +194,7 @@ def main():
     # 运行测试
     results = []
     results.append(("OpenCode", test_opencode_integration()))
-    # results.append(("Claude Code", test_claude_integration()))
+    results.append(("Claude Code", test_claude_integration()))
     results.append(("OpenAI API", test_openai_compatible_api()))
     results.append(("代码生成", test_code_generation()))
 

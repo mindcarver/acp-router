@@ -4,7 +4,7 @@
 
 **统一的 AI 编码 Agent 路由器**
 
-一个简单的 Python 库，通过 ACP 协议无缝调用多个 AI 编码 Agent
+一个简单的 Python 库，通过统一接口无缝调用多个 AI 编码 Agent
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -16,16 +16,16 @@
 
 ## 📖 简介
 
-**ACP Router** 是一个统一的接口层，让你通过一套 API 调用多个支持 ACP (Agent Client Protocol) 的 AI 编码 Agent。无需修改现有代码，即可在 OpenCode、Claude Code 等后端之间自由切换。
+**ACP Router** 是一个统一的接口层，让你通过一套 API 调用多个 AI 编码 Agent。无需修改现有代码，即可在 OpenCode、Claude Code 等后端之间自由切换。
 
 ### 为什么选择 ACP Router？
 
 | 特性 | 说明 |
 |------|------|
 | 🔄 **统一接口** | 一套 API，支持多个后端 |
-| 🚀 **原生 ACP** | 直接通过 ACP 协议通信，无额外封装 |
+| 🚀 **多模式支持** | ACP 原生协议 + SDK 模式 |
 | 🔌 **OpenAI 兼容** | 兼容 OpenAI SDK 风格的 API |
-| 💰 **零费用** | 本地运行，无 API 调用费用 |
+| 💰 **零费用** | 本地运行，无额外 API 调用费用 |
 | 🔒 **数据安全** | 所有数据处理都在本地 |
 | 🎨 **运行时补丁** | 无需修改现有代码即可迁移 |
 
@@ -33,11 +33,10 @@
 
 ## 🎯 支持的后端
 
-| 后端 | ACP 支持 | 启动命令 | 推荐用途 |
-|------|:--------:|----------|----------|
-| **OpenCode** | ✅ 原生 | `opencode acp` | 通用代码生成 |
-| **Claude Code** | ✅ 适配器 | `claude --acp` | 代码理解与重构 |
-| **Cursor** | ✅ 适配器 | `cursor acp` | VS Code 用户 |
+| 后端 | 模式 | 认证方式 | 推荐用途 |
+|------|------|----------|----------|
+| **OpenCode** | ACP 原生 | 本地 CLI | 通用代码生成 |
+| **Claude Code** | SDK | AUTH_TOKEN / API Key | 代码理解与重构 |
 
 > 💡 **提示**: 更多后端支持正在开发中...
 
@@ -61,13 +60,34 @@ pip install -e .
 
 ### 基础用法
 
+#### OpenCode 后端
+
 ```python
 from acp_router import ACPRouter
 
-# 使用 OpenCode 后端
+# 使用 OpenCode 后端（ACP 原生模式）
 router = ACPRouter(backend="opencode")
 response = router.chat([
     {"role": "user", "content": "写一个 Python 快速排序"}
+])
+print(response)
+router.stop()
+```
+
+#### Claude Code 后端
+
+```python
+import os
+from acp_router import ACPRouter
+
+# 设置认证（使用 Claude 订阅的 auth token）
+os.environ["ANTHROPIC_AUTH_TOKEN"] = "your-auth-token"
+# 可选：自定义 API 端点
+os.environ["ANTHROPIC_BASE_URL"] = "https://api.anthropic.com"
+
+router = ACPRouter(backend="claude")
+response = router.chat([
+    {"role": "user", "content": "解释这段代码..."}
 ])
 print(response)
 router.stop()
@@ -113,12 +133,15 @@ router.stop()
 ### 环境变量
 
 ```bash
-# 选择默认后端
+# 选择默认后端 (opencode / claude)
 export ACP_BACKEND=opencode
 
-# 后端命令路径
-export OPENCODE_CMD=opencode
-export CLAUDE_CMD=claude
+# Claude Code 认证（二选一）
+export ANTHROPIC_AUTH_TOKEN=your-auth-token  # 推荐：使用 Claude 订阅
+export ANTHROPIC_API_KEY=your-api-key        # 或使用 API key
+
+# 可选：自定义 API 端点
+export ANTHROPIC_BASE_URL=https://api.anthropic.com
 
 # 请求超时（秒）
 export ACP_TIMEOUT=120
@@ -152,8 +175,9 @@ acp-router/
 │   ├── backends/
 │   │   ├── __init__.py
 │   │   ├── base.py            # BackendBase 抽象类
-│   │   ├── opencode.py        # OpenCode 后端
-│   │   └── claude.py          # Claude Code 后端
+│   │   ├── opencode.py        # OpenCode 后端 (ACP 原生)
+│   │   ├── claude.py          # Claude Code 后端 (ACP 模式)
+│   │   └── claude_sdk.py      # Claude Code 后端 (SDK 模式)
 │   └── transport/
 │       ├── __init__.py
 │       └── acp.py             # ACP JSON-RPC 传输层
@@ -175,6 +199,7 @@ acp-router/
 | **ACPRouter** | 统一的路由器接口，管理后端选择和生命周期 |
 | **BackendBase** | 后端抽象类，定义统一的聊天接口 |
 | **ACPTransport** | ACP JSON-RPC 2.0 传输层，处理进程通信 |
+| **ClaudeSDKBackend** | Claude Code SDK 后端，支持 auth token 认证 |
 | **Config** | 配置管理，支持环境变量和代码配置 |
 
 ---
@@ -267,7 +292,9 @@ pip install -e ".[dev]"
 # 运行所有测试
 pytest
 
-# 运行集成测试（需要安装后端）
+# 运行集成测试（需要配置后端）
+# OpenCode: 确保 opencode CLI 已安装
+# Claude Code: 设置 ANTHROPIC_AUTH_TOKEN 或 ANTHROPIC_API_KEY
 pytest tests/integration_test.py
 
 # 查看测试覆盖率
@@ -355,8 +382,9 @@ ACP (Agent Client Protocol) 是一个标准化的通信协议，用于编辑器�
 ## 🙏 致谢
 
 - [Agent Client Protocol](https://github.com/agentclientprotocol/agent-client-protocol) - ACP 协议规范
-- [OpenCode](https://github.com/axter/opencode) - 开源的 AI 编码 Agent
+- [OpenCode](https://github.com/anomaly/opencode) - 开源的 AI 编码 Agent
 - [Claude Code](https://claude.ai/code) - Anthropic 的 AI 编码助手
+- [claude-code-sdk](https://github.com/anthropics/claude-code-sdk-python) - Claude Code Python SDK
 
 ---
 

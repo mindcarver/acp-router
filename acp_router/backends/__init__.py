@@ -10,6 +10,7 @@ from acp_router.backends.base import (
 )
 from acp_router.backends.opencode import OpenCodeBackend
 from acp_router.backends.claude import ClaudeBackend
+from acp_router.backends.claude_sdk import ClaudeSDKBackend
 
 __all__ = [
     "BackendBase",
@@ -17,5 +18,5 @@ __all__ = [
     "BackendCapabilities",
     "OpenCodeBackend",
     "ClaudeBackend",
-    # GeminiBackend 计划中
+    "ClaudeSDKBackend",
 ]

@@ -10,13 +10,14 @@ from typing import Any, Optional
 from dataclasses import dataclass, field
 
 from acp_router.backends.base import BackendBase, ChatResponse
-from acp_router.backends import OpenCodeBackend, ClaudeBackend
+from acp_router.backends import OpenCodeBackend, ClaudeBackend, ClaudeSDKBackend
 from acp_router.config import get_config, Config
 
 
 @dataclass
 class CompletionChoice:
     """OpenAI 风格的 Choice"""
+
     message: "CompletionMessage"
     finish_reason: str | None = None
     index: int = 0
@@ -25,6 +26,7 @@ class CompletionChoice:
 @dataclass
 class CompletionMessage:
     """OpenAI 风格的 Message"""
+
     role: str = "assistant"
     content: str = ""
 
@@ -32,6 +34,7 @@ class CompletionMessage:
 @dataclass
 class CompletionResponse:
     """OpenAI 风格的响应"""
+
     choices: list[CompletionChoice] = field(default_factory=list)
     model: str | None = None
     usage: dict | None = None
@@ -40,6 +43,7 @@ class CompletionResponse:
 @dataclass
 class CompletionUsage:
     """Token 使用情况"""
+
     prompt_tokens: int = 0
     completion_tokens: int = 0
     total_tokens: int = 0
@@ -60,8 +64,9 @@ class ACPRouter:
     # 后端注册表
     _backends = {
         "opencode": OpenCodeBackend,
-        "claude": ClaudeBackend,
-        "claude-code": ClaudeBackend,
+        "claude": ClaudeSDKBackend,  # 使用 SDK 模式（原 ACP 模式不可用）
+        "claude-code": ClaudeSDKBackend,
+        "claude-sdk": ClaudeSDKBackend,  # 显式指定 SDK 模式
     }
 
     def __init__(
@@ -87,10 +92,7 @@ class ACPRouter:
 
         if self.backend_name not in self._backends:
             available = list(self._backends.keys())
-            raise ValueError(
-                f"未知后端: {self.backend_name}. "
-                f"可用后端: {available}"
-            )
+            raise ValueError(f"未知后端: {self.backend_name}. 可用后端: {available}")
 
         self._backend_instance: Optional[BackendBase] = None
 
