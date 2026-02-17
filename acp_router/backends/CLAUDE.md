@@ -7,5 +7,6 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #2846 | 10:40 PM | 🔴 | ACP Router protocol implementation corrected | ~232 |
+| #2845 | 10:32 PM | 🟣 | Claude Backend ACP Message Format Updated | ~200 |
+| #2813 | 10:16 PM | 🟣 | ACP router backend base class created | ~293 |
 </claude-mem-context>
